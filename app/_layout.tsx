@@ -1,24 +1,67 @@
+import '@/global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { Href, Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
+import { useAuthToken } from '@/hooks/use-auth-token';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+	anchor: '(tabs)',
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+	const colorScheme = useColorScheme();
+	const router = useRouter();
+	const { token, isLoading, hasToken } = useAuthToken();
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+	useEffect(() => {
+		if (isLoading) return;
+
+		if (!hasToken) {
+			router.replace('/login' as Href);
+		} else {
+			router.replace('/private/(tabs)');
+		}
+	}, [isLoading, hasToken, router]);
+
+	if (isLoading) {
+		return (
+			<View className="flex-1 bg-linear-to-br from-indigo-900 via-purple-800 to-purple-900 justify-center items-center">
+				<ActivityIndicator size="large" color="#d8b4fe" />
+			</View>
+		);
+	}
+
+	return (
+		<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+			<Stack>
+				{/* Rutas de autenticación (sin header) */}
+				<Stack.Screen
+					name="login"
+					options={{
+						headerShown: false,
+					}}
+				/>
+				<Stack.Screen
+					name="register"
+					options={{
+						headerShown: false,
+					}}
+				/>
+
+				{/* Rutas protegidas (con autenticación) */}
+				<Stack.Screen
+					name="(tabs)"
+					options={{
+						headerShown: false,
+					}}
+				/>
+			</Stack>
+			<StatusBar style="auto" />
+		</ThemeProvider>
+	);
 }
