@@ -1,25 +1,25 @@
+import EditProfileModal from '@/components/edit-profile-modal';
 import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/hooks/use-auth-profile';
-import { useAuthToken } from '@/hooks/use-auth-token';
-import { useRouter } from 'expo-router';
-import { Mail, Shield, Sparkles, Star, Trophy, User } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { Edit3, Mail, Shield, Sparkles, Star, Trophy, User } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 export default function ProfileScreen() {
-    const router = useRouter();
     const { profile, isLoading, fetchProfile } = useAuthProfile();
-    const { deleteTokens } = useAuthToken();
+    const [editingType, setEditingType] = useState<"username" | "email" | null>(null);
 
     useEffect(() => {
         fetchProfile();
-    }, []);
+    }, [fetchProfile]);
 
-    const handleLogout = async () => {
-        await deleteTokens();
-        router.push('/login');
+    const handleSaveChanges = async (username?: string, email?: string) => {
+        // TODO: Implementar llamada API para actualizar usuario/email
+        // Por ahora simplemente refrescamos el perfil
+        await fetchProfile();
+        setEditingType(null);
     };
 
     return (
@@ -62,7 +62,7 @@ export default function ProfileScreen() {
                 <View className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-100/20 rounded-full blur-3xl pointer-events-none" style={{ transform: [{ translateX: -192 }, { translateY: 192 }] }} />
 
                 {/* Main content */}
-                <View className="px-4 pt-6 pb-8">
+                <View className="px-4 pt-10 pb-20">
                     {/* Header */}
                     <View className="mb-8">
                         <StyledText className="text-4xl font-bold text-purple-900 mb-1">
@@ -74,9 +74,9 @@ export default function ProfileScreen() {
                     </View>
 
                     {/* Profile Card Principal */}
-                    <View className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200/40 rounded-3xl p-6 shadow-sm mb-6">
-                        <View className="flex-row items-center mb-6">
-                            <View className="w-16 h-16 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-full items-center justify-center mr-4">
+                    <View className="bg-linear-to-br from-purple-50 to-indigo-50 border border-purple-200/40 rounded-3xl p-6 shadow-sm mb-6">
+                        <View className="flex-row items-center">
+                            <View className="w-16 h-16 bg-linear-to-br from-purple-400 to-indigo-500 rounded-full items-center justify-center mr-4">
                                 <User size={32} color="white" />
                             </View>
                             <View className="flex-1">
@@ -114,59 +114,58 @@ export default function ProfileScreen() {
                                 <Skeleton width="40%" height={14} borderRadius={4} />
                                 <Skeleton width="80%" height={18} borderRadius={4} style={{ marginTop: 8 }} />
                             </View>
-                            <View className="bg-white border border-pink-200/30 rounded-2xl p-5">
-                                <Skeleton width="40%" height={14} borderRadius={4} />
-                                <Skeleton width="60%" height={18} borderRadius={4} style={{ marginTop: 8 }} />
-                            </View>
                         </>
                     ) : (
                         <>
                             {/* Username Card */}
                             <View className="bg-white border border-purple-200/30 rounded-2xl p-5 mb-3">
-                                <View className="flex-row items-center mb-2">
-                                    <View className="w-8 h-8 bg-purple-100 rounded-full items-center justify-center mr-3">
-                                        <User size={18} color="#a78bfa" />
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-1 flex-row items-center">
+                                        <View className="w-12 h-12 bg-purple-100 rounded-full items-center justify-center mr-3">
+                                            <User size={24} color="#a78bfa" />
+                                        </View>
+                                        <View className="flex-1">
+                                            <StyledText className="text-sm font-bold text-purple-700 tracking-widest">
+                                                USUARIO
+                                            </StyledText>
+                                            <StyledText className="text-lg font-semibold text-gray-900">
+                                                {profile?.username}
+                                            </StyledText>
+                                        </View>
                                     </View>
-                                    <StyledText className="text-xs font-bold text-purple-700 tracking-widest">
-                                        USUARIO
-                                    </StyledText>
+                                    <Pressable
+                                        onPress={() => setEditingType("username")}
+                                        className="p-2 active:scale-95"
+                                    >
+                                        <Edit3 size={20} color="#a78bfa" />
+                                    </Pressable>
                                 </View>
-                                <StyledText className="text-lg font-semibold text-gray-900 ml-11">
-                                    {profile?.username}
-                                </StyledText>
                             </View>
 
                             {/* Email Card */}
                             <View className="bg-white border border-indigo-200/30 rounded-2xl p-5 mb-3">
-                                <View className="flex-row items-center mb-2">
-                                    <View className="w-8 h-8 bg-indigo-100 rounded-full items-center justify-center mr-3">
-                                        <Mail size={18} color="#818cf8" />
-                                    </View>
-                                    <StyledText className="text-xs font-bold text-indigo-700 tracking-widest">
-                                        EMAIL
-                                    </StyledText>
-                                </View>
-                                <StyledText className="text-base font-semibold text-gray-900 ml-11 break-words">
-                                    {profile?.email}
-                                </StyledText>
-                            </View>
-
-                            {/* ID Card */}
-                            {profile?.id && (
-                                <View className="bg-white border border-pink-200/30 rounded-2xl p-5">
-                                    <View className="flex-row items-center mb-2">
-                                        <View className="w-8 h-8 bg-pink-100 rounded-full items-center justify-center mr-3">
-                                            <Shield size={18} color="#ec4899" />
+                                <View className="flex-row items-center justify-between">
+                                    <View className="flex-1 flex-row items-center">
+                                        <View className="w-12 h-12 bg-indigo-100 rounded-full items-center justify-center mr-3">
+                                            <Mail size={24} color="#818cf8" />
                                         </View>
-                                        <StyledText className="text-xs font-bold text-pink-700 tracking-widest">
-                                            ID
-                                        </StyledText>
+                                        <View className="flex-1">
+                                            <StyledText className="text-xs font-bold text-indigo-700 tracking-widest">
+                                                EMAIL
+                                            </StyledText>
+                                            <StyledText className="text-base font-semibold text-gray-900 wrap-break-word">
+                                                {profile?.email}
+                                            </StyledText>
+                                        </View>
                                     </View>
-                                    <StyledText className="text-sm font-mono text-gray-900 ml-11 break-all">
-                                        {profile.id}
-                                    </StyledText>
+                                    <Pressable
+                                        onPress={() => setEditingType("email")}
+                                        className="p-2 active:scale-95"
+                                    >
+                                        <Edit3 size={20} color="#818cf8" />
+                                    </Pressable>
                                 </View>
-                            )}
+                            </View>
                         </>
                     )}
 
@@ -176,7 +175,7 @@ export default function ProfileScreen() {
                             Estadísticas
                         </StyledText>
                         <View className="flex-row gap-3">
-                            <View className="flex-1 bg-gradient-to-br from-purple-100 to-purple-50 border border-purple-200/50 rounded-2xl p-4 items-center justify-center">
+                            <View className="flex-1 bg-linear-to-br from-purple-100 to-purple-50 border border-purple-200/50 rounded-2xl p-4 items-center justify-center">
                                 <View className="w-10 h-10 bg-purple-200 rounded-full items-center justify-center mb-2">
                                     <Trophy size={20} color="#a78bfa" />
                                 </View>
@@ -185,7 +184,7 @@ export default function ProfileScreen() {
                                     Logros
                                 </StyledText>
                             </View>
-                            <View className="flex-1 bg-gradient-to-br from-indigo-100 to-indigo-50 border border-indigo-200/50 rounded-2xl p-4 items-center justify-center">
+                            <View className="flex-1 bg-linear-to-br from-indigo-100 to-indigo-50 border border-indigo-200/50 rounded-2xl p-4 items-center justify-center">
                                 <View className="w-10 h-10 bg-indigo-200 rounded-full items-center justify-center mb-2">
                                     <Star size={20} color="#818cf8" />
                                 </View>
@@ -196,18 +195,16 @@ export default function ProfileScreen() {
                             </View>
                         </View>
                     </View>
-
-                    {/* Logout Button */}
-                    <Pressable
-                        onPress={handleLogout}
-                        className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-4"
-                    >
-                        <StyledText className="text-white text-lg font-semibold tracking-wider">
-                            Cerrar Sesión
-                        </StyledText>
-                    </Pressable>
                 </View>
             </ScrollView>
+
+            <EditProfileModal
+                show={editingType !== null}
+                setShow={(show) => !show && setEditingType(null)}
+                editType={editingType}
+                currentValue={editingType === "username" ? profile?.username || "" : profile?.email || ""}
+                onSave={handleSaveChanges}
+            />
         </ThemedView>
     );
 }
