@@ -1,7 +1,6 @@
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/config/api';
 import * as SecureStore from 'expo-secure-store';
 import { useCallback, useEffect, useState } from 'react';
-
-const TOKEN_KEY = process.env.TOKEN_KEY || 'authToken';
 
 // Función helper para decodificar base64 en React Native
 const decodeBase64 = (str: string): string => {
@@ -15,61 +14,75 @@ const decodeBase64 = (str: string): string => {
 };
 
 interface UseAuthTokenReturn {
-    token: string | null;
+    accessToken: string | null;
+    refreshToken: string | null;
     isLoading: boolean;
-    saveToken: (token: string) => Promise<void>;
-    getToken: () => Promise<string | null>;
-    deleteToken: () => Promise<void>;
+    saveToken: (accessToken: string, refreshToken: string) => Promise<void>;
+    getTokens: () => Promise<{ accessToken: string | null; refreshToken: string | null }>;
+    deleteTokens: () => Promise<void>;
     isTokenValid: (token?: string | null) => boolean;
     hasToken: boolean;
 }
 
 export function useAuthToken(): UseAuthTokenReturn {
-    const [token, setToken] = useState<string | null>(null);
+    const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const loadToken = async () => {
+        const loadTokens = async () => {
             try {
-                const storedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-                setToken(storedToken || null);
+                const storedAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+                const storedRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+                setAccessToken(storedAccessToken || null);
+                setRefreshToken(storedRefreshToken || null);
             } catch (error) {
-                console.error('Error loading token:', error);
-                setToken(null);
+                console.error('Error loading tokens:', error);
+                setAccessToken(null);
+                setRefreshToken(null);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        loadToken();
+        loadTokens();
     }, []);
 
-    const saveToken = useCallback(async (newToken: string) => {
-        await SecureStore.setItemAsync(TOKEN_KEY, newToken);
-        setToken(newToken);
+    const saveToken = useCallback(async (newAccessToken: string, newRefreshToken: string) => {
+        await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, newAccessToken);
+        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken);
+        setAccessToken(newAccessToken);
+        setRefreshToken(newRefreshToken);
     }, []);
 
-    const getToken = useCallback(async (): Promise<string | null> => {
+    const getTokens = useCallback(async (): Promise<{ accessToken: string | null; refreshToken: string | null }> => {
         try {
-            return await SecureStore.getItemAsync(TOKEN_KEY);
+            const storedAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+            const storedRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+            return {
+                accessToken: storedAccessToken || null,
+                refreshToken: storedRefreshToken || null,
+            };
         } catch (error) {
-            console.error('Error getting token:', error);
-            return null;
+            console.error('Error getting tokens:', error);
+            return { accessToken: null, refreshToken: null };
         }
     }, []);
 
-    const deleteToken = useCallback(async () => {
+    const deleteTokens = useCallback(async () => {
         try {
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
-            setToken(null);
+            await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+            await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+            setAccessToken(null);
+            setRefreshToken(null);
         } catch (error) {
-            console.error('Error deleting token:', error);
+            console.error('Error deleting tokens:', error);
             throw error;
         }
     }, []);
 
     const isTokenValid = useCallback((tokenInput?: string | null): boolean => {
-        const tokenToValidate = tokenInput || token;
+        const tokenToValidate = tokenInput || accessToken;
 
         if (!tokenToValidate) return false;
 
@@ -92,15 +105,16 @@ export function useAuthToken(): UseAuthTokenReturn {
             console.error('Error validating token:', error);
             return false;
         }
-    }, [token]);
+    }, [accessToken]);
 
     return {
-        token,
+        accessToken,
+        refreshToken,
         isLoading,
         saveToken,
-        getToken,
-        deleteToken,
+        getTokens,
+        deleteTokens,
         isTokenValid,
-        hasToken: token !== null,
+        hasToken: accessToken !== null,
     };
 }

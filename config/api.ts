@@ -3,21 +3,10 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 export const API_ENDPOINTS = {
   register: `${API_URL}/auth/register`,
   login: `${API_URL}/auth/login`,
+  refresh: `${API_URL}/auth/refresh`,
+  profile: `${API_URL}/auth/profile`,
 };
 
-export interface RegisterPayload {
-  username: string;
-  email: string;
-  password: string;
-}
+export const ACCESS_TOKEN_KEY = process.env.ACCESS_TOKEN_KEY || 'accessToken';
+export const REFRESH_TOKEN_KEY = process.env.REFRESH_TOKEN_KEY || 'refreshToken';
 
-export interface LoginPayload {
-  usernameOrEmail: string;
-  password: string;
-}
-
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-}

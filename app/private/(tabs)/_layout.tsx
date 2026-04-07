@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
+import { BarChart3, Settings, User } from 'lucide-react-native';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -20,15 +20,22 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="index"
 				options={{
-					title: 'Home',
-					tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+					title: 'Inicio',
+					tabBarIcon: ({ color }) => <BarChart3 size={28} color={color} />,
 				}}
 			/>
 			<Tabs.Screen
-				name="explore"
+				name="profile"
 				options={{
-					title: 'Explore',
-					tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+					title: 'Perfil',
+					tabBarIcon: ({ color }) => <User size={28} color={color} />,
+				}}
+			/>
+			<Tabs.Screen
+				name="logout"
+				options={{
+					title: 'Configuración',
+					tabBarIcon: ({ color }) => <Settings size={28} color={color} />,
 				}}
 			/>
 		</Tabs>

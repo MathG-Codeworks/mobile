@@ -16,7 +16,7 @@ export const unstable_settings = {
 export default function RootLayout() {
 	const colorScheme = useColorScheme();
 	const router = useRouter();
-	const { token, isLoading, hasToken } = useAuthToken();
+	const { isLoading, hasToken } = useAuthToken();
 
 	useEffect(() => {
 		if (isLoading) return;
@@ -55,7 +55,7 @@ export default function RootLayout() {
 
 				{/* Rutas protegidas (con autenticación) */}
 				<Stack.Screen
-					name="(tabs)"
+					name="private"
 					options={{
 						headerShown: false,
 					}}

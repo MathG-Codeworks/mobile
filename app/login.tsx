@@ -38,48 +38,48 @@ export default function LoginScreen() {
         setProcessing(true);
 
         fetch(API_ENDPOINTS.login, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    usernameOrEmail: data.username,
-                    password: data.password
-                })
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                usernameOrEmail: data.username,
+                password: data.password
             })
-                .then(async (response) => {
-                    const responseData = await response.json();
-                    if (response.ok) {
-                        if (responseData.access_token && checkTokenValid(responseData.access_token)) {
-                            try {
-                                await saveToken(responseData.access_token);
-                                router.push('/private/(tabs)');
-                            } catch (error) {
-                                setErrorMessages(['Error en el sevidor. Por favor intenta de nuevo.']);
-                                setShowErrorModal(true);
-                            }
-                        } else {
+        })
+            .then(async (response) => {
+                const responseData = await response.json();
+                if (response.ok) {
+                    if (responseData.accessToken && responseData.refreshToken && checkTokenValid(responseData.accessToken)) {
+                        try {
+                            await saveToken(responseData.accessToken, responseData.refreshToken);
+                            router.push('/private/(tabs)');
+                        } catch (error) {
                             setErrorMessages(['Error en el sevidor. Por favor intenta de nuevo.']);
                             setShowErrorModal(true);
                         }
                     } else {
-                        if (responseData.message && Array.isArray(responseData.message)) {
-                            setErrorMessages(responseData.message);
-                        } else if (responseData.message) {
-                            setErrorMessages([responseData.message]);
-                        } else {
-                            setErrorMessages(['Error en el registro. Por favor intenta de nuevo.']);
-                        }
+                        setErrorMessages(['Error en el sevidor. Por favor intenta de nuevo.']);
                         setShowErrorModal(true);
                     }
-                })
-                .catch((error) => {
-                    setErrorMessages(['Error de conexión. Por favor intenta de nuevo.']);
+                } else {
+                    if (responseData.message && Array.isArray(responseData.message)) {
+                        setErrorMessages(responseData.message);
+                    } else if (responseData.message) {
+                        setErrorMessages([responseData.message]);
+                    } else {
+                        setErrorMessages(['Error en el registro. Por favor intenta de nuevo.']);
+                    }
                     setShowErrorModal(true);
-                })
-                .finally(() => {
-                    setProcessing(false);
-                });
+                }
+            })
+            .catch((error) => {
+                setErrorMessages(['Error de conexión. Por favor intenta de nuevo.']);
+                setShowErrorModal(true);
+            })
+            .finally(() => {
+                setProcessing(false);
+            });
     };
 
     return (
