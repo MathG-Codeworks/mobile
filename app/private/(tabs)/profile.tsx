@@ -1,14 +1,15 @@
 import EditProfileModal from '@/components/edit-profile-modal';
+import { ErrorModal } from '@/components/error-modal';
 import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
-import { useAuthProfile } from '@/hooks/use-auth-profile';
+import { useAuthProfile } from '@/contexts/auth-profile-context';
 import { Edit3, Mail, Shield, Sparkles, Star, Trophy, User } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 export default function ProfileScreen() {
-    const { profile, isLoading, fetchProfile } = useAuthProfile();
+    const { profile, isLoading, fetchProfile, patchProfile, error, clearError } = useAuthProfile();
     const [editingType, setEditingType] = useState<"username" | "email" | null>(null);
 
     useEffect(() => {
@@ -16,9 +17,7 @@ export default function ProfileScreen() {
     }, [fetchProfile]);
 
     const handleSaveChanges = async (username?: string, email?: string) => {
-        // TODO: Implementar llamada API para actualizar usuario/email
-        // Por ahora simplemente refrescamos el perfil
-        await fetchProfile();
+        await patchProfile(username, email);
         setEditingType(null);
     };
 
@@ -150,10 +149,10 @@ export default function ProfileScreen() {
                                             <Mail size={24} color="#818cf8" />
                                         </View>
                                         <View className="flex-1">
-                                            <StyledText className="text-xs font-bold text-indigo-700 tracking-widest">
+                                            <StyledText className="text-sm font-bold text-indigo-700 tracking-widest">
                                                 EMAIL
                                             </StyledText>
-                                            <StyledText className="text-base font-semibold text-gray-900 wrap-break-word">
+                                            <StyledText className="text-lg font-semibold text-gray-900 wrap-break-word">
                                                 {profile?.email}
                                             </StyledText>
                                         </View>
@@ -204,6 +203,13 @@ export default function ProfileScreen() {
                 editType={editingType}
                 currentValue={editingType === "username" ? profile?.username || "" : profile?.email || ""}
                 onSave={handleSaveChanges}
+            />
+
+            <ErrorModal
+                visible={error !== null}
+                title="Error al actualizar perfil"
+                message={error || ""}
+                onClose={clearError}
             />
         </ThemedView>
     );

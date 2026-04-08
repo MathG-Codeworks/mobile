@@ -5,6 +5,7 @@ export const API_ENDPOINTS = {
   login: `${API_URL}/auth/login`,
   refresh: `${API_URL}/auth/refresh`,
   profile: `${API_URL}/auth/profile`,
+  patchProfile: `${API_URL}/auth/profile`,
 };
 
 export const ACCESS_TOKEN_KEY = process.env.ACCESS_TOKEN_KEY || 'accessToken';

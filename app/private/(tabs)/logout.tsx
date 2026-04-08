@@ -1,18 +1,26 @@
 import { useAuthToken } from '@/hooks/use-auth-token';
 import { useRouter } from 'expo-router';
-import { AlertCircle, LogOut, Settings, Shield, Sparkles, Zap } from 'lucide-react-native';
+import { LogOut, Settings, Shield, Sparkles, Zap } from 'lucide-react-native';
+import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import ChangePasswordModal from '@/components/change-password-modal';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 
 export default function LogoutScreen() {
     const router = useRouter();
     const { deleteTokens } = useAuthToken();
+    const [showChangePassword, setShowChangePassword] = useState(false);
 
     const handleLogout = async () => {
         await deleteTokens();
         router.push('/login');
+    };
+
+    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+        // TODO: Implementar llamada API para cambiar contraseña
+        console.log('Cambiar contraseña:', { currentPassword, newPassword });
     };
 
     return (
@@ -55,7 +63,7 @@ export default function LogoutScreen() {
                 <View className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-100/20 rounded-full blur-3xl pointer-events-none" style={{ transform: [{ translateX: -192 }, { translateY: 192 }] }} />
 
                 {/* Main content */}
-                <View className="px-4 pt-6 pb-8">
+                <View className="px-4 pt-10 pb-20">
                     {/* Header */}
                     <View className="mb-8">
                         <StyledText className="text-4xl font-bold text-purple-900 mb-1">
@@ -72,7 +80,7 @@ export default function LogoutScreen() {
                             Opciones Rápidas
                         </StyledText>
 
-                        {/* Privacy Option */}
+                        {/* Close All Sessions Option */}
                         <Pressable className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all">
                             <View className="flex-row items-center flex-1">
                                 <View className="w-12 h-12 bg-blue-200 rounded-full items-center justify-center mr-4">
@@ -80,27 +88,30 @@ export default function LogoutScreen() {
                                 </View>
                                 <View>
                                     <StyledText className="text-lg font-semibold text-gray-900">
-                                        Privacidad
+                                        Cerrar todas las sesiones
                                     </StyledText>
                                     <StyledText className="text-xs text-gray-600 mt-1">
-                                        Controla tu privacidad
+                                        Desconecta todos tus dispositivos
                                     </StyledText>
                                 </View>
                             </View>
                         </Pressable>
 
-                        {/* Settings Option */}
-                        <Pressable className="bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all">
+                        {/* Change Password Option */}
+                        <Pressable
+                            onPress={() => setShowChangePassword(true)}
+                            className="bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
+                        >
                             <View className="flex-row items-center flex-1">
                                 <View className="w-12 h-12 bg-purple-200 rounded-full items-center justify-center mr-4">
                                     <Settings size={24} color="#a78bfa" />
                                 </View>
                                 <View>
                                     <StyledText className="text-lg font-semibold text-gray-900">
-                                        Preferencias
+                                        Cambiar contraseña
                                     </StyledText>
                                     <StyledText className="text-xs text-gray-600 mt-1">
-                                        Ajusta tu experiencia
+                                        Actualiza tu contraseña
                                     </StyledText>
                                 </View>
                             </View>
@@ -113,40 +124,35 @@ export default function LogoutScreen() {
                             Sesión
                         </StyledText>
 
-                        <View className="bg-yellow-50 border border-yellow-200/40 rounded-2xl p-4 flex-row items-start mb-4">
-                            <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center mr-3 mt-1">
-                                <AlertCircle size={20} color="#ca8a04" />
-                            </View>
-                            <View className="flex-1">
-                                <StyledText className="text-sm font-semibold text-yellow-900">
-                                    Cerrar Sesión
-                                </StyledText>
-                                <StyledText className="text-xs text-yellow-800 mt-1">
-                                    Serás desconectado de tu cuenta
-                                </StyledText>
-                            </View>
+                        {/* Logout Button */}
+                        <Pressable
+                            onPress={handleLogout}
+                            className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-2"
+                        >
+                            <LogOut size={20} color="white" />
+                            <StyledText className="text-white text-lg font-semibold tracking-wider">
+                                Cerrar Sesión
+                            </StyledText>
+                        </Pressable>
+
+                        {/* Info Footer */}
+                        <View className="bg-gray-50 border border-gray-200/30 rounded-2xl p-4 flex flex-col items-center mt-6">
+                            <StyledText className="text-xs text-gray-600 text-center">
+                                ¿Necesitas ayuda?
+                            </StyledText>
+                            <StyledText className="text-xs text-gray-600 text-center">
+                                Contacta con nuestro equipo de soporte
+                            </StyledText>
                         </View>
-                    </View>
-
-                    {/* Logout Button */}
-                    <Pressable
-                        onPress={handleLogout}
-                        className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-4"
-                    >
-                        <LogOut size={20} color="white" />
-                        <StyledText className="text-white text-lg font-semibold tracking-wider">
-                            Cerrar Sesión
-                        </StyledText>
-                    </Pressable>
-
-                    {/* Info Footer */}
-                    <View className="bg-gray-50 border border-gray-200/30 rounded-2xl p-4 items-center mt-6">
-                        <StyledText className="text-xs text-gray-600 text-center">
-                            ¿Necesitas ayuda? Contacta con nuestro equipo de soporte
-                        </StyledText>
                     </View>
                 </View>
             </ScrollView>
+
+            <ChangePasswordModal
+                show={showChangePassword}
+                setShow={setShowChangePassword}
+                onSave={handleChangePassword}
+            />
         </ThemedView>
     );
 }

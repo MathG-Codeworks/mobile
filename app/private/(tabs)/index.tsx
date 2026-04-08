@@ -1,7 +1,7 @@
 import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
-import { useAuthProfile } from '@/hooks/use-auth-profile';
+import { useAuthProfile } from '@/contexts/auth-profile-context';
 import { Award, BarChart3, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
