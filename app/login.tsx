@@ -52,8 +52,10 @@ export default function LoginScreen() {
                 if (response.ok) {
                     if (responseData.accessToken && responseData.refreshToken && checkTokenValid(responseData.accessToken)) {
                         try {
-                            await saveToken(responseData.accessToken, responseData.refreshToken);
-                            router.push('/private/(tabs)');
+                            const success = await saveToken(responseData.accessToken, responseData.refreshToken);
+                            if (success) {
+                                router.push('/private/(tabs)');
+                            }
                         } catch (error) {
                             setErrorMessages(['Error en el sevidor. Por favor intenta de nuevo.']);
                             setShowErrorModal(true);

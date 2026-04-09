@@ -2,16 +2,19 @@ import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/contexts/auth-profile-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Award, BarChart3, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { ScrollView, View } from 'react-native';
 
 export default function HomeScreen() {
     const { profile, isLoading, fetchProfile } = useAuthProfile();
 
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchProfile();
+        }, [fetchProfile])
+    );
 
     return (
         <ThemedView className="min-h-screen bg-white relative overflow-hidden flex-1">

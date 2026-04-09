@@ -1,9 +1,8 @@
 import '@/global.css';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Href, Stack, useRouter } from 'expo-router';
+import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
 import { AuthProfileProvider } from '@/contexts/auth-profile-context';
@@ -17,25 +16,30 @@ export const unstable_settings = {
 export default function RootLayout() {
 	const colorScheme = useColorScheme();
 	const router = useRouter();
-	const { isLoading, hasToken } = useAuthToken();
+	const { hasToken } = useAuthToken();
+	const segments = useSegments();
+	const navigationState = useRootNavigationState();
 
 	useEffect(() => {
-		if (isLoading) return;
+		const checkAuth = async () => {
+			try {
+				if (!navigationState?.key) return;
 
-		if (!hasToken) {
-			router.replace('/login' as Href);
-		} else {
-			router.replace('/private/(tabs)');
-		}
-	}, [isLoading, hasToken, router]);
+				const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
+				const userHasToken = await hasToken();
+				if (!userHasToken && !inAuthGroup) {
+					router.replace('/login');
+				} else if (userHasToken && inAuthGroup) {
+					router.replace('/private/(tabs)');
+				}
+			} catch (error) {
+				console.error('Error checking auth:', error);
+				router.replace('/login');
+			}
+		};
 
-	if (isLoading) {
-		return (
-			<View className="flex-1 bg-linear-to-br from-indigo-900 via-purple-800 to-purple-900 justify-center items-center">
-				<ActivityIndicator size="large" color="#d8b4fe" />
-			</View>
-		);
-	}
+		checkAuth();
+	}, [segments, navigationState]);
 
 	return (
 		<AuthProfileProvider>

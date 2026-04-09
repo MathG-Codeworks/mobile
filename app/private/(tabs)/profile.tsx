@@ -4,17 +4,20 @@ import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/contexts/auth-profile-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { Edit3, Mail, Shield, Sparkles, Star, Trophy, User } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 export default function ProfileScreen() {
     const { profile, isLoading, fetchProfile, patchProfile, error, clearError } = useAuthProfile();
     const [editingType, setEditingType] = useState<"username" | "email" | null>(null);
 
-    useEffect(() => {
-        fetchProfile();
-    }, [fetchProfile]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchProfile();
+        }, [fetchProfile])
+    );
 
     const handleSaveChanges = async (username?: string, email?: string) => {
         await patchProfile(username, email);
@@ -207,7 +210,7 @@ export default function ProfileScreen() {
 
             <ErrorModal
                 visible={error !== null}
-                title="Error al actualizar perfil"
+                title={editingType ? "Error al actualizar perfil" : "Hay un problema!"}
                 message={error || ""}
                 onClose={clearError}
             />

@@ -1,6 +1,6 @@
 import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from '@/config/api';
 import * as SecureStore from 'expo-secure-store';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 // Función helper para decodificar base64 en React Native
 const decodeBase64 = (str: string): string => {
@@ -14,58 +14,43 @@ const decodeBase64 = (str: string): string => {
 };
 
 interface UseAuthTokenReturn {
-    accessToken: string | null;
-    refreshToken: string | null;
-    isLoading: boolean;
-    saveToken: (accessToken: string, refreshToken: string) => Promise<void>;
-    getTokens: () => Promise<{ accessToken: string | null; refreshToken: string | null }>;
+    getAccessToken: () => Promise<string | null>;
+    getRefreshToken: () => Promise<string | null>;
+    saveToken: (accessToken: string, refreshToken: string) => Promise<boolean>;
     deleteTokens: () => Promise<void>;
     isTokenValid: (token?: string | null) => boolean;
-    hasToken: boolean;
+    hasToken: () => Promise<boolean>;
 }
 
 export function useAuthToken(): UseAuthTokenReturn {
-    const [accessToken, setAccessToken] = useState<string | null>(null);
-    const [refreshToken, setRefreshToken] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const loadTokens = async () => {
-            try {
-                const storedAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-                const storedRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-                setAccessToken(storedAccessToken || null);
-                setRefreshToken(storedRefreshToken || null);
-            } catch (error) {
-                console.error('Error loading tokens:', error);
-                setAccessToken(null);
-                setRefreshToken(null);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadTokens();
-    }, []);
-
-    const saveToken = useCallback(async (newAccessToken: string, newRefreshToken: string) => {
-        await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, newAccessToken);
-        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken);
-        setAccessToken(newAccessToken);
-        setRefreshToken(newRefreshToken);
-    }, []);
-
-    const getTokens = useCallback(async (): Promise<{ accessToken: string | null; refreshToken: string | null }> => {
+    const getAccessToken = useCallback(async (): Promise<string | null> => {
         try {
-            const storedAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-            const storedRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-            return {
-                accessToken: storedAccessToken || null,
-                refreshToken: storedRefreshToken || null,
-            };
+            const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+            return token || null;
         } catch (error) {
-            console.error('Error getting tokens:', error);
-            return { accessToken: null, refreshToken: null };
+            console.error('Error getting access token:', error);
+            return null;
+        }
+    }, []);
+
+    const getRefreshToken = useCallback(async (): Promise<string | null> => {
+        try {
+            const token = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+            return token || null;
+        } catch (error) {
+            console.error('Error getting refresh token:', error);
+            return null;
+        }
+    }, []);
+
+    const saveToken = useCallback(async (newAccessToken: string, newRefreshToken: string): Promise<boolean> => {
+        try {
+            await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, newAccessToken);
+            await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, newRefreshToken);
+            return true;
+        } catch (error) {
+            console.error('Error saving tokens:', error);
+            return false;
         }
     }, []);
 
@@ -73,8 +58,6 @@ export function useAuthToken(): UseAuthTokenReturn {
         try {
             await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
             await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-            setAccessToken(null);
-            setRefreshToken(null);
         } catch (error) {
             console.error('Error deleting tokens:', error);
             throw error;
@@ -82,13 +65,11 @@ export function useAuthToken(): UseAuthTokenReturn {
     }, []);
 
     const isTokenValid = useCallback((tokenInput?: string | null): boolean => {
-        const tokenToValidate = tokenInput || accessToken;
-
-        if (!tokenToValidate) return false;
+        if (!tokenInput) return false;
 
         try {
             // Verificar que es un JWT válido (3 partes separadas por puntos)
-            const parts = tokenToValidate.split('.');
+            const parts = tokenInput.split('.');
             if (parts.length !== 3) return false;
 
             // Decodificar el payload (segunda parte)
@@ -105,16 +86,19 @@ export function useAuthToken(): UseAuthTokenReturn {
             console.error('Error validating token:', error);
             return false;
         }
-    }, [accessToken]);
+    }, []);
+
+    const hasToken = useCallback(async (): Promise<boolean> => {
+        const token = await getAccessToken();
+        return token !== null;
+    }, []);
 
     return {
-        accessToken,
-        refreshToken,
-        isLoading,
+        getAccessToken,
+        getRefreshToken,
         saveToken,
-        getTokens,
         deleteTokens,
         isTokenValid,
-        hasToken: accessToken !== null,
+        hasToken,
     };
 }

@@ -1,8 +1,7 @@
-import { useAuthToken } from '@/hooks/use-auth-token';
 import { useRouter } from 'expo-router';
 import { LogOut, Settings, Shield, Sparkles, Zap } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
 
 import ChangePasswordModal from '@/components/change-password-modal';
 import { StyledText } from '@/components/styled-text';
@@ -11,18 +10,28 @@ import { useAuthProfile } from '@/contexts/auth-profile-context';
 
 export default function LogoutScreen() {
     const router = useRouter();
-    const { deleteTokens } = useAuthToken();
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { logout, logoutAll, changePassword } = useAuthProfile();
 
     const handleLogout = async () => {
+        setIsLoggingOut(true);
         const success = await logout();
-        if (success) router.push('/login');
+        if (success) {
+            router.push('/login');
+        } else {
+            setIsLoggingOut(false);
+        }
     };
 
     const handleAllLogout = async () => {
+        setIsLoggingOut(true);
         const success = await logoutAll();
-        if (success) router.push('/login');
+        if (success) {
+            router.push('/login');
+        } else {
+            setIsLoggingOut(false);
+        }
     }
 
     const handleChangePassword = async (currentPassword: string, newPassword: string, confirmPassword: string) => {
@@ -90,6 +99,7 @@ export default function LogoutScreen() {
                         {/* Close All Sessions Option */}
                         <Pressable
                             onPress={handleAllLogout}
+                            disabled={isLoggingOut}
                             className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
                         >
                             <View className="flex-row items-center flex-1">
@@ -110,6 +120,7 @@ export default function LogoutScreen() {
                         {/* Change Password Option */}
                         <Pressable
                             onPress={() => setShowChangePassword(true)}
+                            disabled={isLoggingOut}
                             className="bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
                         >
                             <View className="flex-row items-center flex-1">
@@ -137,6 +148,7 @@ export default function LogoutScreen() {
                         {/* Logout Button */}
                         <Pressable
                             onPress={handleLogout}
+                            disabled={isLoggingOut}
                             className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-2"
                         >
                             <LogOut size={20} color="white" />
@@ -163,6 +175,26 @@ export default function LogoutScreen() {
                 setShow={setShowChangePassword}
                 onSave={handleChangePassword}
             />
+
+            {/* Logout Loading Modal */}
+            <Modal
+                visible={isLoggingOut}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {}}
+            >
+                <View className="flex-1 bg-black/60 justify-center items-center">
+                    <View className="bg-white rounded-3xl p-8 items-center w-5/6 max-w-xs shadow-2xl">
+                        <ActivityIndicator size="large" color="#a78bfa" />
+                        <StyledText className="text-xl font-semibold text-gray-900 mt-6 text-center">
+                            Cerrando sesión...
+                        </StyledText>
+                        <StyledText className="text-sm text-gray-600 mt-2 text-center">
+                            Por favor espera
+                        </StyledText>
+                    </View>
+                </View>
+            </Modal>
         </ThemedView>
     );
 }

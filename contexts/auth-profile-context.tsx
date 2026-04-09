@@ -20,15 +20,19 @@ interface AuthProfileContextType {
 const AuthProfileContext = createContext<AuthProfileContextType | undefined>(undefined);
 
 export function AuthProfileProvider({ children }: { children: ReactNode }) {
-    const { accessToken, deleteTokens } = useAuthToken();
+    const { getAccessToken, getRefreshToken, deleteTokens } = useAuthToken();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchProfile = useCallback(async (): Promise<UserProfile | null> => {
-        if (!accessToken) {
+        const accessToken = await getAccessToken();
+
+        if (!accessToken || profile) {
             return null;
         }
+
+        console.log("fetch");
 
         setIsLoading(true);
         setError(null);
@@ -58,9 +62,11 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [accessToken]);
+    }, [getAccessToken, profile]);
 
     const patchProfile = useCallback(async (username?: string, email?: string): Promise<UserProfile | null> => {
+        const accessToken = await getAccessToken();
+
         if (!accessToken) {
             return null;
         }
@@ -98,10 +104,13 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [accessToken]);
+    }, [getAccessToken]);
 
     const logout = useCallback(async (): Promise<boolean> => {
-        if (!accessToken) {
+        const accessToken = await getAccessToken();
+        const refreshToken = await getRefreshToken();
+
+        if (!accessToken || !refreshToken) {
             return false;
         }
 
@@ -113,6 +122,10 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({
+                    refreshToken: refreshToken,
+                    accessToken: accessToken
+                })
             });
 
             if (!response.ok) {
@@ -133,9 +146,11 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [accessToken]);
+    }, [getAccessToken, getRefreshToken, deleteTokens]);
 
     const logoutAll = useCallback(async (): Promise<boolean> => {
+        const accessToken = await getAccessToken();
+
         if (!accessToken) {
             return false;
         }
@@ -168,10 +183,12 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    }, [accessToken]);
+    }, [getAccessToken, deleteTokens]);
 
     const changePassword = useCallback(
         async (currentPassword: string, newPassword: string, confirmPassword: string): Promise<boolean> => {
+            const accessToken = await getAccessToken();
+
             if (!accessToken) {
                 return false;
             }
@@ -185,7 +202,7 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
             setError(null);
             try {
                 const response = await authenticatedFetch(API_ENDPOINTS.changePassword, {
-                    method: 'POST',
+                    method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -215,7 +232,7 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
                 setIsLoading(false);
             }
         },
-        [accessToken]
+        [getAccessToken, deleteTokens]
     );
 
     const clearProfile = useCallback(() => {
