@@ -32,8 +32,6 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
             return null;
         }
 
-        console.log("fetch");
-
         setIsLoading(true);
         setError(null);
         try {

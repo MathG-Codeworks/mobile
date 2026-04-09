@@ -8,7 +8,11 @@ export const API_ENDPOINTS = {
 	patchProfile: `${API_URL}/auth/profile`,
 	logout: `${API_URL}/auth/logout`,
 	logoutAll: `${API_URL}/auth/logout-all`,
-	changePassword: `${API_URL}/auth/change-password`
+	changePassword: `${API_URL}/auth/change-password`,
+	getUserTotalTime: `${API_URL}/session/user/total-time`,
+	getUserPresition: `${API_URL}/attemp/user/presition`,
+	getUserPresitionByDay: `${API_URL}/attemp/user/by-day`,
+	getUserPerformance: `${API_URL}/minigame/user/performance`,
 };
 
 export const ACCESS_TOKEN_KEY = process.env.ACCESS_TOKEN_KEY || 'accessToken';

@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { AuthProfileProvider } from '@/contexts/auth-profile-context';
+import { KPIProvider } from '@/contexts/kpi-context';
 import { useAuthToken } from '@/hooks/use-auth-token';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -43,32 +44,34 @@ export default function RootLayout() {
 
 	return (
 		<AuthProfileProvider>
-			<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-				<Stack>
-					{/* Rutas de autenticación (sin header) */}
-					<Stack.Screen
-						name="login"
-						options={{
-							headerShown: false,
-						}}
-					/>
-					<Stack.Screen
-						name="register"
-						options={{
-							headerShown: false,
-						}}
-					/>
+			<KPIProvider>
+				<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+					<Stack>
+						{/* Rutas de autenticación (sin header) */}
+						<Stack.Screen
+							name="login"
+							options={{
+								headerShown: false,
+							}}
+						/>
+						<Stack.Screen
+							name="register"
+							options={{
+								headerShown: false,
+							}}
+						/>
 
-					{/* Rutas protegidas (con autenticación) */}
-					<Stack.Screen
-						name="private"
-						options={{
-							headerShown: false,
-						}}
-					/>
-				</Stack>
-				<StatusBar style="auto" />
-			</ThemeProvider>
+						{/* Rutas protegidas (con autenticación) */}
+						<Stack.Screen
+							name="private"
+							options={{
+								headerShown: false,
+							}}
+						/>
+					</Stack>
+					<StatusBar style="auto" />
+				</ThemeProvider>
+			</KPIProvider>
 		</AuthProfileProvider>
 	);
 }
