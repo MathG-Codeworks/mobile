@@ -12,12 +12,15 @@ interface AuthProfileContextType {
     patchProfile: (username?: string, email?: string) => Promise<UserProfile | null>;
     clearProfile: () => void;
     clearError: () => void;
+    logout: () => Promise<boolean>;
+    logoutAll: () => Promise<boolean>;
+    changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<boolean>;
 }
 
 const AuthProfileContext = createContext<AuthProfileContextType | undefined>(undefined);
 
 export function AuthProfileProvider({ children }: { children: ReactNode }) {
-    const { accessToken } = useAuthToken();
+    const { accessToken, deleteTokens } = useAuthToken();
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -97,6 +100,124 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         }
     }, [accessToken]);
 
+    const logout = useCallback(async (): Promise<boolean> => {
+        if (!accessToken) {
+            return false;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await authenticatedFetch(API_ENDPOINTS.logout, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMessage = Array.isArray(errorData.message)
+                    ? errorData.message[0]
+                    : errorData.message || `Error: ${response.status}`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            setProfile(null);
+            await deleteTokens();
+
+            return true;
+        } catch (error) {
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [accessToken]);
+
+    const logoutAll = useCallback(async (): Promise<boolean> => {
+        if (!accessToken) {
+            return false;
+        }
+
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await authenticatedFetch(API_ENDPOINTS.logoutAll, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMessage = Array.isArray(errorData.message)
+                    ? errorData.message[0]
+                    : errorData.message || `Error: ${response.status}`;
+                setError(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            setProfile(null);
+            await deleteTokens();
+            
+            return true;
+        } catch (error) {
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [accessToken]);
+
+    const changePassword = useCallback(
+        async (currentPassword: string, newPassword: string, confirmPassword: string): Promise<boolean> => {
+            if (!accessToken) {
+                return false;
+            }
+
+            if (newPassword !== confirmPassword) {
+                setError('Las nuevas contraseñas no coinciden');
+                return false;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await authenticatedFetch(API_ENDPOINTS.changePassword, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        "currentPassword": currentPassword,
+                        "newPassword": newPassword,
+                        "confirmNewPassword": confirmPassword,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    const errorMessage = Array.isArray(errorData.message)
+                        ? errorData.message[0]
+                        : errorData.message || `Error: ${response.status}`;
+                    setError(errorMessage);
+                    throw new Error(errorMessage);
+                }
+
+                setProfile(null);
+                await deleteTokens();
+
+                return true;
+            } catch (error) {
+                return false;
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [accessToken]
+    );
+
     const clearProfile = useCallback(() => {
         setProfile(null);
     }, []);
@@ -111,6 +232,9 @@ export function AuthProfileProvider({ children }: { children: ReactNode }) {
         error,
         fetchProfile,
         patchProfile,
+        logout,
+        logoutAll,
+        changePassword,
         clearProfile,
         clearError,
     };

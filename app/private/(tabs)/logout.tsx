@@ -7,20 +7,27 @@ import { Pressable, ScrollView, View } from 'react-native';
 import ChangePasswordModal from '@/components/change-password-modal';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
+import { useAuthProfile } from '@/contexts/auth-profile-context';
 
 export default function LogoutScreen() {
     const router = useRouter();
     const { deleteTokens } = useAuthToken();
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const { logout, logoutAll, changePassword } = useAuthProfile();
 
     const handleLogout = async () => {
-        await deleteTokens();
-        router.push('/login');
+        const success = await logout();
+        if (success) router.push('/login');
     };
 
-    const handleChangePassword = async (currentPassword: string, newPassword: string) => {
-        // TODO: Implementar llamada API para cambiar contraseña
-        console.log('Cambiar contraseña:', { currentPassword, newPassword });
+    const handleAllLogout = async () => {
+        const success = await logoutAll();
+        if (success) router.push('/login');
+    }
+
+    const handleChangePassword = async (currentPassword: string, newPassword: string, confirmPassword: string) => {
+        const success = await changePassword(currentPassword, newPassword, confirmPassword);
+        if (success) router.push('/login');
     };
 
     return (
@@ -81,7 +88,10 @@ export default function LogoutScreen() {
                         </StyledText>
 
                         {/* Close All Sessions Option */}
-                        <Pressable className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all">
+                        <Pressable
+                            onPress={handleAllLogout}
+                            className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
+                        >
                             <View className="flex-row items-center flex-1">
                                 <View className="w-12 h-12 bg-blue-200 rounded-full items-center justify-center mr-4">
                                     <Shield size={24} color="#0284c7" />

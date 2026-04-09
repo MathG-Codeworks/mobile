@@ -6,7 +6,7 @@ import { StyledText } from './styled-text';
 interface ChangePasswordModalProps {
     show: boolean;
     setShow: (show: boolean) => void;
-    onSave: (currentPassword: string, newPassword: string) => Promise<void>;
+    onSave: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<void>;
 }
 
 export default function ChangePasswordModal({
@@ -61,7 +61,7 @@ export default function ChangePasswordModal({
 
         setLoading(true);
         try {
-            await onSave(currentPassword, newPassword);
+            await onSave(currentPassword, newPassword, confirmPassword);
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
