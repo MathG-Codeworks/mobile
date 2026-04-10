@@ -26,7 +26,7 @@ export interface UserPresitionResponse {
     total: number;
     correct: number;
     incorrect: number;
-    precision: number;
+    presition: number;
 }
 
 export interface UserPresitionResponseByDay {

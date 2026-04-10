@@ -2,9 +2,11 @@ import { Skeleton } from '@/components/skeleton';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/contexts/auth-profile-context';
+import { useKPI } from '@/contexts/kpi-context';
+import { UserPresitionResponseByDay } from '@/types';
 import { useFocusEffect } from '@react-navigation/native';
-import { ArrowDown, ArrowUp, Award, BarChart3, Clock, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { AlertCircle, ArrowDown, ArrowUp, Award, BarChart3, Clock, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { LineChart } from 'react-native-gifted-charts';
 
@@ -47,59 +49,11 @@ const formatPlayTime = (milliseconds: number): string => {
     return `${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`;
 };
 
-const TOTAL_PLAYTIME_MS = 6193420030;
-
-const USER_PRECISION_DATA = {
-    total: 150,
-    correct: 127,
-    incorrect: 23,
-    precision: 84.67
-};
-
-// Datos quemados - curva de aprendizaje por día (múltiples años)
-const LEARNING_CURVE_DATA = [
-    // 2024
-    { date: '2024-04-03', correct: 8, incorrect: 2, total: 10 },
-    { date: '2024-04-04', correct: 12, incorrect: 3, total: 15 },
-    { date: '2024-04-05', correct: 15, incorrect: 2, total: 17 },
-    { date: '2024-04-06', correct: 18, incorrect: 4, total: 22 },
-    { date: '2024-04-07', correct: 20, incorrect: 3, total: 23 },
-    { date: '2024-04-08', correct: 22, incorrect: 2, total: 24 },
-    { date: '2026-04-09', correct: 25, incorrect: 2, total: 27 },
-    // 2025
-    { date: '2025-04-03', correct: 10, incorrect: 1, total: 11 },
-    { date: '2025-04-04', correct: 15, incorrect: 2, total: 17 },
-    { date: '2025-04-05', correct: 18, incorrect: 1, total: 19 },
-    { date: '2025-04-06', correct: 20, incorrect: 3, total: 23 },
-    { date: '2026-04-07', correct: 22, incorrect: 2, total: 24 },
-    { date: '2026-04-08', correct: 24, incorrect: 1, total: 25 },
-    { date: '2026-04-09', correct: 27, incorrect: 1, total: 28 },
-    // 2026
-    { date: '2026-04-03', correct: 8, incorrect: 2, total: 10 },
-    { date: '2026-04-04', correct: 12, incorrect: 3, total: 15 },
-    { date: '2026-04-05', correct: 15, incorrect: 2, total: 17 },
-    { date: '2026-04-06', correct: 18, incorrect: 4, total: 22 },
-    { date: '2026-04-07', correct: 20, incorrect: 3, total: 23 },
-    { date: '2026-04-08', correct: 22, incorrect: 2, total: 24 },
-    { date: '2026-04-09', correct: 25, incorrect: 2, total: 27 },
-];
-
-// Datos de rendimiento por minijuego
-const USER_PERFORMANCE_DATA = [
-    { id: 1, name: 'Ecuaciones', description: 'Linear equations', category: 'Algebra', rounds: 45, score: 890, accuracy: 92.50, position: 1 },
-    { id: 2, name: 'Factorización', description: 'Prime factorization', category: 'Arithmetic', rounds: 38, score: 756, accuracy: 88.30, position: 2 },
-    { id: 3, name: 'Geometría Básica', description: 'Basic shapes', category: 'Geometry', rounds: 52, score: 1024, accuracy: 95.20, position: 1 },
-    { id: 4, name: 'Trigonometría', description: 'Trigonometric functions', category: 'Trigonometry', rounds: 28, score: 512, accuracy: 81.75, position: 3 },
-    { id: 5, name: 'Cálculo Mental', description: 'Mental math', category: 'Arithmetic', rounds: 120, score: 2145, accuracy: 89.30, position: 2 },
-];
-
-// Extraer años únicos
-const uniqueYears = [...new Set(LEARNING_CURVE_DATA.map((item) => item.date.split('-')[0]))].sort();
-
 const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
-const getLineDataByYear = (year: string) => {
-    return LEARNING_CURVE_DATA.filter((item) => item.date.startsWith(year)).map((item) => {
+const getLineDataByYear = (year: string, data: UserPresitionResponseByDay[] | null) => {
+    if (!data) return [];
+    return data.filter((item) => item.date.startsWith(year)).map((item) => {
         const [_, month, day] = item.date.split('-');
         const monthName = months[parseInt(month) - 1];
         return {
@@ -123,9 +77,23 @@ const truncateName = (name: string, maxLength: number = 15) => {
 
 export default function HomeScreen() {
     const { profile, isLoading, fetchProfile } = useAuthProfile();
-    const [selectedYear, setSelectedYear] = useState(uniqueYears[uniqueYears.length - 1]); // Año más reciente por defecto
+    const { 
+        fetchUserTotalTime, userTotalTime, isLoadingTotalTime,
+        fetchUserPresition, userPresition, isLoadingPresition,
+        fetchUserPresitionByDay, userPresitionByDay, isLoadingPresitionByDay,
+        fetchUserPerformance, userPerformance, isLoadingPerformance
+    } = useKPI();
+
+    const [selectedYear, setSelectedYear] = useState<string>('');
     const [isLoadingChart, setIsLoadingChart] = useState(false);
-    const learningCurveLineData = getLineDataByYear(selectedYear);
+    const uniqueYears = useMemo(() => {
+        if (!userPresitionByDay) return [];
+        return [...new Set(userPresitionByDay.map((item) => item.date.split('-')[0]))].sort();
+    }, [userPresitionByDay]);
+    
+    const learningCurveLineData = useMemo(() => {
+        return getLineDataByYear(selectedYear, userPresitionByDay);
+    }, [selectedYear, userPresitionByDay]);
 
     const handleYearChange = (year: string) => {
         setIsLoadingChart(true);
@@ -140,6 +108,36 @@ export default function HomeScreen() {
             fetchProfile();
         }, [fetchProfile])
     );
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserTotalTime();
+        }, [fetchUserTotalTime])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserPresition();
+        }, [fetchUserPresition])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserPresitionByDay();
+        }, [fetchUserPresitionByDay])
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchUserPerformance();
+        }, [fetchUserPerformance])
+    );
+
+    useEffect(() => {
+        if (uniqueYears.length > 0 && !selectedYear) {
+            setSelectedYear(uniqueYears[uniqueYears.length - 1]);
+        }
+    }, [uniqueYears, selectedYear]);
 
     return (
         <ThemedView className="min-h-screen bg-white relative overflow-hidden flex-1">
@@ -220,9 +218,13 @@ export default function HomeScreen() {
                                     <StyledText className="text-sm font-semibold text-purple-700 mb-2">
                                         Tiempo Total Jugado
                                     </StyledText>
-                                    <StyledText className="text-2xl font-bold text-purple-900">
-                                        {formatPlayTime(TOTAL_PLAYTIME_MS)}
-                                    </StyledText>
+                                    { isLoadingTotalTime ? (
+                                        <Skeleton width={140} height={28} borderRadius={6} />
+                                    ) : (
+                                        <StyledText className="text-2xl font-bold text-purple-900">
+                                            {formatPlayTime(userTotalTime)}
+                                        </StyledText>
+                                    )}
                                 </View>
                                 <View className="opacity-20 ml-4">
                                     <Clock size={64} color="#a78bfa" />
@@ -237,9 +239,13 @@ export default function HomeScreen() {
                                     <StyledText className="text-sm font-semibold text-blue-700 mb-2">
                                         Win Rate
                                     </StyledText>
-                                    <StyledText className="text-3xl font-bold text-blue-900">
-                                        {USER_PRECISION_DATA.precision}%
-                                    </StyledText>
+                                    { isLoadingPresition ? (
+                                        <Skeleton width={100} height={28} borderRadius={6} />
+                                    ) : (
+                                        <StyledText className="text-3xl font-bold text-blue-900">
+                                            {userPresition?.presition ?? 0}%
+                                        </StyledText>
+                                    ) }
                                 </View>
                                 <View className="opacity-20 ml-4">
                                     <Zap size={64} color="#0369a1" />
@@ -256,9 +262,13 @@ export default function HomeScreen() {
                                         Res. Correctas
                                     </StyledText>
                                     <View className="flex-row items-center justify-between w-full">
-                                        <StyledText className="text-3xl font-bold text-green-900">
-                                            {USER_PRECISION_DATA.correct}
-                                        </StyledText>
+                                        { isLoadingPresition ? (
+                                            <Skeleton width={60} height={28} borderRadius={6} />
+                                        ) : (
+                                            <StyledText className="text-3xl font-bold text-green-900">
+                                                {userPresition?.correct ?? 0}
+                                            </StyledText>
+                                        ) }
                                         <View className="opacity-20 ml-2">
                                             <ArrowUp size={56} color="#16a34a" />
                                         </View>
@@ -273,9 +283,13 @@ export default function HomeScreen() {
                                         Res. Incorrectas
                                     </StyledText>
                                     <View className="flex-row items-center justify-between w-full">
-                                        <StyledText className="text-3xl font-bold text-red-900">
-                                            {USER_PRECISION_DATA.incorrect}
-                                        </StyledText>
+                                        { isLoadingPresition ? (
+                                            <Skeleton width={60} height={28} borderRadius={6} />
+                                        ) : (
+                                            <StyledText className="text-3xl font-bold text-red-900">
+                                                {userPresition?.incorrect ?? 0}
+                                            </StyledText>
+                                        ) }
                                         <View className="opacity-20 ml-2">
                                             <ArrowDown size={56} color="#dc2626" />
                                         </View>
@@ -294,58 +308,75 @@ export default function HomeScreen() {
                             Evolución de tus respuestas correctas día a día
                         </StyledText>
 
-                        {/* Year Selector */}
-                        <View className="flex-row mb-4 px-2">
-                            {uniqueYears.map((year) => (
-                                <TouchableOpacity
-                                    key={year}
-                                    style={{
-                                        padding: 8,
-                                        paddingHorizontal: 16,
-                                        marginRight: 6,
-                                        backgroundColor: selectedYear === year ? '#a78bfa' : 'transparent',
-                                        borderRadius: 999,
-                                        borderWidth: 1,
-                                        borderColor: selectedYear === year ? '#a78bfa' : '#d1d5db',
-                                    }}
-                                    onPress={() => handleYearChange(year)}>
-                                    <Text style={{ color: selectedYear === year ? '#fff' : '#000', fontWeight: 'bold' }}>
-                                        {year}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <View className="items-center justify-center -mx-8 min-h-64">
-                            {isLoadingChart ? (
+                        { isLoadingPresitionByDay ? (
+                            <View className="items-center justify-center -mx-8 min-h-64">
                                 <ActivityIndicator size="large" color="#a78bfa" />
-                            ) : (
-                                <LineChart
-                                    data={learningCurveLineData}
-                                    height={250}
-                                    verticalLinesColor="#e5e7eb"
-                                    color="#a78bfa"
-                                    thickness={2.5}
-                                    dataPointsColor="#7e22ce"
-                                    startFillColor="#a78bfa"
-                                    startOpacity={0.3}
-                                    endOpacity={0}
-                                    xAxisColor="#d1d5db"
-                                    yAxisColor="transparent"
-                                    isAnimated={true}
-                                    hideYAxisText={true}
-                                    textShiftY={-8}
-                                    textShiftX={-1}
-                                    textFontSize={13}
-                                    areaChart={true}
-                                    curved
-                                    scrollToEnd={true}
-                                    rotateLabel
-                                    width={Dimensions.get('window').width}
-                                    xAxisLabelTextStyle={{ color: '#6b7280', fontSize: 12 }}
-                                />
-                            )}
-                        </View>
+                            </View>
+                        ) : learningCurveLineData.length > 0 ? (
+                            <>
+                                {/* Year Selector */}
+                                <View className="flex-row mb-4 px-2">
+                                    {uniqueYears.map((year) => (
+                                        <TouchableOpacity
+                                            key={year}
+                                            style={{
+                                                padding: 8,
+                                                paddingHorizontal: 16,
+                                                marginRight: 6,
+                                                backgroundColor: selectedYear === year ? '#a78bfa' : 'transparent',
+                                                borderRadius: 999,
+                                                borderWidth: 1,
+                                                borderColor: selectedYear === year ? '#a78bfa' : '#d1d5db',
+                                            }}
+                                            onPress={() => handleYearChange(year)}>
+                                            <Text style={{ color: selectedYear === year ? '#fff' : '#000', fontWeight: 'bold' }}>
+                                                {year}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+
+                                <View className="items-center justify-center -mx-8 min-h-64">
+                                    {isLoadingChart ? (
+                                        <ActivityIndicator size="large" color="#a78bfa" />
+                                    ) : (
+                                        <LineChart
+                                            data={learningCurveLineData}
+                                            height={250}
+                                            verticalLinesColor="#e5e7eb"
+                                            color="#a78bfa"
+                                            thickness={2.5}
+                                            dataPointsColor="#7e22ce"
+                                            startFillColor="#a78bfa"
+                                            startOpacity={0.3}
+                                            endOpacity={0}
+                                            xAxisColor="#d1d5db"
+                                            yAxisColor="transparent"
+                                            isAnimated={true}
+                                            hideYAxisText={true}
+                                            textShiftY={-8}
+                                            textShiftX={-1}
+                                            textFontSize={13}
+                                            areaChart={true}
+                                            curved
+                                            scrollToEnd={true}
+                                            rotateLabel
+                                            width={Dimensions.get('window').width}
+                                            xAxisLabelTextStyle={{ color: '#6b7280', fontSize: 12 }}
+                                        />
+                                    )}
+                                </View>
+                            </>
+                        ) : (
+                            <View className="items-center justify-center -mx-8 min-h-64">
+                                <View className="items-center gap-3">
+                                    <AlertCircle size={48} color="#d1d5db" />
+                                    <StyledText className="text-gray-400 text-center">
+                                        Sin datos aún
+                                    </StyledText>
+                                </View>
+                            </View>
+                        )}
                     </View>
 
                     {/* Performance by Game Section */}
@@ -358,35 +389,51 @@ export default function HomeScreen() {
                         </StyledText>
 
                         <View className="gap-4">
-                            {USER_PERFORMANCE_DATA.map((game) => {
-                                const accuracyColor = getAccuracyColor(game.accuracy);
-                                const truncatedName = truncateName(game.name);
-                                
-                                return (
-                                    <View key={game.id} className="px-2">
-                                        {/* Game name and accuracy value */}
-                                        <View className="flex-row items-center justify-between mb-2">
-                                            <StyledText className="text-sm font-semibold text-gray-700 flex-1">
-                                                {truncatedName}
-                                            </StyledText>
-                                            <StyledText className="text-sm font-bold" style={{ color: accuracyColor }}>
-                                                {game.accuracy.toFixed(2)}%
-                                            </StyledText>
+                            { isLoadingPerformance ? (
+                                <View className="items-center justify-center -mx-8 min-h-64">
+                                    <ActivityIndicator size="large" color="#a78bfa" />
+                                </View>
+                            ) : userPerformance && userPerformance.length > 0 ? (
+                                userPerformance?.map((game) => {
+                                    const accuracyColor = getAccuracyColor(game.accuracy);
+                                    const truncatedName = truncateName(game.name);
+                                    const truncateCategory = truncateName(game.category, 20);
+                                    
+                                    return (
+                                        <View key={game.id} className="px-2">
+                                            {/* Game name and accuracy value */}
+                                            <View className="flex-row items-center justify-between mb-2">
+                                                <StyledText className="text-sm font-semibold text-gray-700 flex-1">
+                                                    {truncatedName} / {truncateCategory}
+                                                </StyledText>
+                                                <StyledText className="text-sm font-bold" style={{ color: accuracyColor }}>
+                                                    {game.accuracy.toFixed(2)}%
+                                                </StyledText>
+                                            </View>
+                                            
+                                            {/* Horizontal progress bar */}
+                                            <View className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                                <View
+                                                    className="h-full rounded-full"
+                                                    style={{
+                                                        width: `${game.accuracy}%`,
+                                                        backgroundColor: accuracyColor,
+                                                    }}
+                                                />
+                                            </View>
                                         </View>
-                                        
-                                        {/* Horizontal progress bar */}
-                                        <View className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
-                                            <View
-                                                className="h-full rounded-full"
-                                                style={{
-                                                    width: `${game.accuracy}%`,
-                                                    backgroundColor: accuracyColor,
-                                                }}
-                                            />
-                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <View className="items-center justify-center -mx-8 min-h-64">
+                                    <View className="items-center gap-3">
+                                        <AlertCircle size={48} color="#d1d5db" />
+                                        <StyledText className="text-gray-400 text-center">
+                                            Sin datos aún
+                                        </StyledText>
                                     </View>
-                                );
-                            })}
+                                </View>
+                            ) }
                         </View>
                     </View>
                 </View>

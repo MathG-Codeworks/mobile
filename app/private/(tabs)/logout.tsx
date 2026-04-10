@@ -7,17 +7,20 @@ import ChangePasswordModal from '@/components/change-password-modal';
 import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/contexts/auth-profile-context';
+import { useKPI } from '@/contexts/kpi-context';
 
 export default function LogoutScreen() {
     const router = useRouter();
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const { clearUserData } = useKPI();
     const { logout, logoutAll, changePassword } = useAuthProfile();
 
     const handleLogout = async () => {
         setIsLoggingOut(true);
         const success = await logout();
         if (success) {
+            clearUserData();
             router.push('/login');
         } else {
             setIsLoggingOut(false);
@@ -28,6 +31,7 @@ export default function LogoutScreen() {
         setIsLoggingOut(true);
         const success = await logoutAll();
         if (success) {
+            clearUserData();
             router.push('/login');
         } else {
             setIsLoggingOut(false);
@@ -100,7 +104,7 @@ export default function LogoutScreen() {
                         <Pressable
                             onPress={handleAllLogout}
                             disabled={isLoggingOut}
-                            className="bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
+                            className="bg-linear-to-r from-blue-50 to-blue-100/50 border border-blue-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
                         >
                             <View className="flex-row items-center flex-1">
                                 <View className="w-12 h-12 bg-blue-200 rounded-full items-center justify-center mr-4">
@@ -121,7 +125,7 @@ export default function LogoutScreen() {
                         <Pressable
                             onPress={() => setShowChangePassword(true)}
                             disabled={isLoggingOut}
-                            className="bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
+                            className="bg-linear-to-r from-purple-50 to-purple-100/50 border border-purple-200/40 rounded-2xl p-5 mb-3 flex-row items-center justify-between active:scale-95 transition-all"
                         >
                             <View className="flex-row items-center flex-1">
                                 <View className="w-12 h-12 bg-purple-200 rounded-full items-center justify-center mr-4">
@@ -149,7 +153,7 @@ export default function LogoutScreen() {
                         <Pressable
                             onPress={handleLogout}
                             disabled={isLoggingOut}
-                            className="bg-gradient-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-2"
+                            className="bg-linear-to-r from-red-500 to-red-600 rounded-2xl h-14 flex-row items-center justify-center gap-2 active:scale-95 transition-all duration-300 shadow-lg shadow-red-500/25 mb-2"
                         >
                             <LogOut size={20} color="white" />
                             <StyledText className="text-white text-lg font-semibold tracking-wider">

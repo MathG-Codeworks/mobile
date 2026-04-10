@@ -5,24 +5,31 @@ import { authenticatedFetch } from '@/utils/api-client';
 import { createContext, ReactNode, useCallback, useContext, useState } from 'react';
 
 interface KPIContextType {
-    isLoading: boolean;
+    isLoadingTotalTime: boolean;
+    isLoadingPresition: boolean;
+    isLoadingPresitionByDay: boolean;
+    isLoadingPerformance: boolean;
     error: string | null;
     userTotalTime: number;
-    userPresition: any;
-    userPresitionByDay: any;
-    userPerformance: any;
+    userPresition: UserPresitionResponse | null;
+    userPresitionByDay: UserPresitionResponseByDay[] | null;
+    userPerformance: UserPerformanceResponse[] | null;
     clearError: () => void;
     fetchUserTotalTime: () => Promise<any>;
     fetchUserPresition: () => Promise<any>;
     fetchUserPresitionByDay: () => Promise<any>;
     fetchUserPerformance: () => Promise<any>;
+    clearUserData: () => void;
 }
 
 const KPIContext = createContext<KPIContextType | undefined>(undefined);
 
 export function KPIProvider({ children }: { children: ReactNode }) {
     const { getAccessToken } = useAuthToken();
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingTotalTime, setIsLoadingTotalTime] = useState<boolean>(true);
+    const [isLoadingPresition, setIsLoadingPresition] = useState<boolean>(true);
+    const [isLoadingPresitionByDay, setIsLoadingPresitionByDay] = useState<boolean>(true);
+    const [isLoadingPerformance, setIsLoadingPerformance] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [userTotalTime, setUserTotalTime] = useState<number>(0);
     const [userPresition, setUserPresition] = useState<UserPresitionResponse | null>(null);
@@ -36,12 +43,11 @@ export function KPIProvider({ children }: { children: ReactNode }) {
     const fetchUserTotalTime = useCallback(async (): Promise<any> => {
         const accessToken = await getAccessToken();
 
-        if (!accessToken) {
-            setError('No access token available');
+        if (!accessToken || userTotalTime) {
             return null;
         }
 
-        setIsLoading(true);
+        setIsLoadingTotalTime(true);
         setError(null);
         try {
             const response = await authenticatedFetch(API_ENDPOINTS.getUserTotalTime, {
@@ -61,25 +67,24 @@ export function KPIProvider({ children }: { children: ReactNode }) {
             }
 
             const data = await response.json();
+
             setUserTotalTime(typeof data === 'number' ? Number(data) : 0);
             return data;
         } catch (error) {
-            console.error('Error fetching user total time:', error);
             return null;
         } finally {
-            setIsLoading(false);
+            setIsLoadingTotalTime(false);
         }
-    }, [getAccessToken]);
+    }, [getAccessToken, userTotalTime]);
 
     const fetchUserPresition = useCallback(async (): Promise<any> => {
         const accessToken = await getAccessToken();
 
-        if (!accessToken) {
-            setError('No access token available');
+        if (!accessToken || userPresition) {
             return null;
         }
 
-        setIsLoading(true);
+        setIsLoadingPresition(true);
         setError(null);
         try {
             const response = await authenticatedFetch(API_ENDPOINTS.getUserPresition, {
@@ -99,25 +104,24 @@ export function KPIProvider({ children }: { children: ReactNode }) {
             }
 
             const data: UserPresitionResponse = await response.json();
+
             setUserPresition(data);
             return data;
         } catch (error) {
-            console.error('Error fetching user presition:', error);
             return null;
         } finally {
-            setIsLoading(false);
+            setIsLoadingPresition(false);
         }
-    }, [getAccessToken]);
+    }, [getAccessToken, userPresition]);
 
     const fetchUserPresitionByDay = useCallback(async (): Promise<any> => {
         const accessToken = await getAccessToken();
 
-        if (!accessToken) {
-            setError('No tienes acceso a este recurso');
+        if (!accessToken || userPresitionByDay) {
             return null;
         }
 
-        setIsLoading(true);
+        setIsLoadingPresitionByDay(true);
         setError(null);
         try {
             const response = await authenticatedFetch(API_ENDPOINTS.getUserPresitionByDay, {
@@ -137,25 +141,24 @@ export function KPIProvider({ children }: { children: ReactNode }) {
             }
 
             const data: UserPresitionResponseByDay[] = await response.json();
+
             setUserPresitionByDay(data);
             return data;
         } catch (error) {
-            console.error('Error fetching user presition by day:', error);
             return null;
         } finally {
-            setIsLoading(false);
+            setIsLoadingPresitionByDay(false);
         }
-    }, [getAccessToken]);
+    }, [getAccessToken, userPresitionByDay]);
 
     const fetchUserPerformance = useCallback(async (): Promise<any> => {
         const accessToken = await getAccessToken();
 
-        if (!accessToken) {
-            setError('No access token available');
+        if (!accessToken || userPerformance) {
             return null;
         }
 
-        setIsLoading(true);
+        setIsLoadingPerformance(true);
         setError(null);
         try {
             const response = await authenticatedFetch(API_ENDPOINTS.getUserPerformance, {
@@ -175,18 +178,29 @@ export function KPIProvider({ children }: { children: ReactNode }) {
             }
 
             const data: UserPerformanceResponse[] = await response.json();
+
             setUserPerformance(data);
             return data;
         } catch (error) {
-            console.error('Error fetching user performance:', error);
             return null;
         } finally {
-            setIsLoading(false);
+            setIsLoadingPerformance(false);
         }
+    }, [getAccessToken, userPerformance]);
+
+    const clearUserData = useCallback(() => {
+        setUserTotalTime(0);
+        setUserPresition(null);
+        setUserPresitionByDay(null);
+        setUserPerformance(null);
+        setError(null);
     }, [getAccessToken]);
 
     const contextValue: KPIContextType = {
-        isLoading,
+        isLoadingTotalTime,
+        isLoadingPresition,
+        isLoadingPresitionByDay,
+        isLoadingPerformance,
         error,
         userTotalTime,
         userPresition,
@@ -196,7 +210,8 @@ export function KPIProvider({ children }: { children: ReactNode }) {
         fetchUserTotalTime,
         fetchUserPresition,
         fetchUserPresitionByDay,
-        fetchUserPerformance
+        fetchUserPerformance,
+        clearUserData
     };
 
     return (
