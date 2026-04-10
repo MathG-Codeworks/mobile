@@ -28,10 +28,15 @@ export default function RootLayout() {
 
 				const inAuthGroup = segments[0] === 'login' || segments[0] === 'register';
 				const userHasToken = await hasToken();
-				if (!userHasToken && !inAuthGroup) {
-					router.replace('/login');
-				} else if (userHasToken && inAuthGroup) {
-					router.replace('/private/(tabs)');
+				
+				if (userHasToken) {
+					if (inAuthGroup || !segments[0]) {
+						router.replace('/private/(tabs)');
+					}
+				} else {
+					if (!inAuthGroup && segments[0]) {
+						router.replace('/login');
+					}
 				}
 			} catch (error) {
 				console.error('Error checking auth:', error);

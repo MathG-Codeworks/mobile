@@ -3,12 +3,137 @@ import { StyledText } from '@/components/styled-text';
 import { ThemedView } from '@/components/themed-view';
 import { useAuthProfile } from '@/contexts/auth-profile-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { Award, BarChart3, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
-import { useCallback } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ArrowDown, ArrowUp, Award, BarChart3, Clock, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Dimensions, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts';
+
+const formatPlayTime = (milliseconds: number): string => {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+    const months = Math.floor(days / 30);
+    
+    const remainingDays = days % 30;
+    const remainingHours = hours % 24;
+    const remainingMinutes = minutes % 60;
+    
+    if (months > 0) {
+        if (remainingDays > 0) {
+            return `${months} ${months === 1 ? 'mes' : 'meses'} y ${remainingDays} ${remainingDays === 1 ? 'día' : 'días'}`;
+        }
+        return `${months} ${months === 1 ? 'mes' : 'meses'}`;
+    }
+    if (days > 0) {
+        if (remainingHours > 0) {
+            return `${days} ${days === 1 ? 'día' : 'días'} y ${remainingHours} ${remainingHours === 1 ? 'hora' : 'horas'}`;
+        }
+        return `${days} ${days === 1 ? 'día' : 'días'}`;
+    }
+    if (hours > 0) {
+        if (remainingMinutes > 0) {
+            return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${remainingMinutes} ${remainingMinutes === 1 ? 'minuto' : 'minutos'}`;
+        }
+        return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
+    }
+    if (minutes > 0) {
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds > 0) {
+            return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'} y ${remainingSeconds} ${remainingSeconds === 1 ? 'segundo' : 'segundos'}`;
+        }
+        return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
+    }
+    return `${seconds} ${seconds === 1 ? 'segundo' : 'segundos'}`;
+};
+
+const TOTAL_PLAYTIME_MS = 6193420030;
+
+const USER_PRECISION_DATA = {
+    total: 150,
+    correct: 127,
+    incorrect: 23,
+    precision: 84.67
+};
+
+// Datos quemados - curva de aprendizaje por día (múltiples años)
+const LEARNING_CURVE_DATA = [
+    // 2024
+    { date: '2024-04-03', correct: 8, incorrect: 2, total: 10 },
+    { date: '2024-04-04', correct: 12, incorrect: 3, total: 15 },
+    { date: '2024-04-05', correct: 15, incorrect: 2, total: 17 },
+    { date: '2024-04-06', correct: 18, incorrect: 4, total: 22 },
+    { date: '2024-04-07', correct: 20, incorrect: 3, total: 23 },
+    { date: '2024-04-08', correct: 22, incorrect: 2, total: 24 },
+    { date: '2026-04-09', correct: 25, incorrect: 2, total: 27 },
+    // 2025
+    { date: '2025-04-03', correct: 10, incorrect: 1, total: 11 },
+    { date: '2025-04-04', correct: 15, incorrect: 2, total: 17 },
+    { date: '2025-04-05', correct: 18, incorrect: 1, total: 19 },
+    { date: '2025-04-06', correct: 20, incorrect: 3, total: 23 },
+    { date: '2026-04-07', correct: 22, incorrect: 2, total: 24 },
+    { date: '2026-04-08', correct: 24, incorrect: 1, total: 25 },
+    { date: '2026-04-09', correct: 27, incorrect: 1, total: 28 },
+    // 2026
+    { date: '2026-04-03', correct: 8, incorrect: 2, total: 10 },
+    { date: '2026-04-04', correct: 12, incorrect: 3, total: 15 },
+    { date: '2026-04-05', correct: 15, incorrect: 2, total: 17 },
+    { date: '2026-04-06', correct: 18, incorrect: 4, total: 22 },
+    { date: '2026-04-07', correct: 20, incorrect: 3, total: 23 },
+    { date: '2026-04-08', correct: 22, incorrect: 2, total: 24 },
+    { date: '2026-04-09', correct: 25, incorrect: 2, total: 27 },
+];
+
+// Datos de rendimiento por minijuego
+const USER_PERFORMANCE_DATA = [
+    { id: 1, name: 'Ecuaciones', description: 'Linear equations', category: 'Algebra', rounds: 45, score: 890, accuracy: 92.50, position: 1 },
+    { id: 2, name: 'Factorización', description: 'Prime factorization', category: 'Arithmetic', rounds: 38, score: 756, accuracy: 88.30, position: 2 },
+    { id: 3, name: 'Geometría Básica', description: 'Basic shapes', category: 'Geometry', rounds: 52, score: 1024, accuracy: 95.20, position: 1 },
+    { id: 4, name: 'Trigonometría', description: 'Trigonometric functions', category: 'Trigonometry', rounds: 28, score: 512, accuracy: 81.75, position: 3 },
+    { id: 5, name: 'Cálculo Mental', description: 'Mental math', category: 'Arithmetic', rounds: 120, score: 2145, accuracy: 89.30, position: 2 },
+];
+
+// Extraer años únicos
+const uniqueYears = [...new Set(LEARNING_CURVE_DATA.map((item) => item.date.split('-')[0]))].sort();
+
+const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+const getLineDataByYear = (year: string) => {
+    return LEARNING_CURVE_DATA.filter((item) => item.date.startsWith(year)).map((item) => {
+        const [_, month, day] = item.date.split('-');
+        const monthName = months[parseInt(month) - 1];
+        return {
+            value: item.correct,
+            label: `${day} ${monthName}`,
+            dataPointText: item.correct.toString(),
+        };
+    });
+};
+
+const getAccuracyColor = (accuracy: number) => {
+    if (accuracy >= 90) return '#10b981'; // Verde
+    if (accuracy >= 80) return '#3b82f6'; // Azul
+    if (accuracy >= 70) return '#f59e0b'; // Naranja
+    return '#ef4444'; // Rojo
+};
+
+const truncateName = (name: string, maxLength: number = 15) => {
+    return name.length > maxLength ? name.substring(0, maxLength - 1) + '…' : name;
+};
 
 export default function HomeScreen() {
     const { profile, isLoading, fetchProfile } = useAuthProfile();
+    const [selectedYear, setSelectedYear] = useState(uniqueYears[uniqueYears.length - 1]); // Año más reciente por defecto
+    const [isLoadingChart, setIsLoadingChart] = useState(false);
+    const learningCurveLineData = getLineDataByYear(selectedYear);
+
+    const handleYearChange = (year: string) => {
+        setIsLoadingChart(true);
+        setTimeout(() => {
+            setSelectedYear(year);
+            setIsLoadingChart(false);
+        }, 400);
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -88,37 +213,72 @@ export default function HomeScreen() {
                             Resumen
                         </StyledText>
 
-                        {/* Grid de gráficas - Primera fila */}
-                        <View className="flex-row gap-4 mb-4">
-                            <View className="flex-1 bg-linear-to-br from-purple-100 to-purple-50 border border-purple-200/50 rounded-2xl overflow-hidden shadow-sm">
-                                <View className="flex-row items-center justify-between p-4">
-                                    <View className="flex-1">
-                                        <Skeleton width="100%" height={120} borderRadius={12} />
-                                    </View>
+                        {/* Card - Tiempo Total Jugado */}
+                        <View className="mb-4 bg-linear-to-br from-purple-100 to-purple-50 border border-purple-200/50 rounded-2xl overflow-hidden shadow-sm">
+                            <View className="flex-row items-center justify-between p-5">
+                                <View className="flex-1">
+                                    <StyledText className="text-sm font-semibold text-purple-700 mb-2">
+                                        Tiempo Total Jugado
+                                    </StyledText>
+                                    <StyledText className="text-2xl font-bold text-purple-900">
+                                        {formatPlayTime(TOTAL_PLAYTIME_MS)}
+                                    </StyledText>
                                 </View>
-                            </View>
-                            <View className="flex-1 bg-linear-to-br from-indigo-100 to-indigo-50 border border-indigo-200/50 rounded-2xl overflow-hidden shadow-sm">
-                                <View className="flex-row items-center justify-between p-4">
-                                    <View className="flex-1">
-                                        <Skeleton width="100%" height={120} borderRadius={12} />
-                                    </View>
+                                <View className="opacity-20 ml-4">
+                                    <Clock size={64} color="#a78bfa" />
                                 </View>
                             </View>
                         </View>
 
-                        {/* Grid de gráficas - Segunda fila */}
-                        <View className="flex-row gap-4 mb-4">
-                            <View className="flex-1 bg-linear-to-br from-pink-100 to-pink-50 border border-pink-200/50 rounded-2xl overflow-hidden shadow-sm">
-                                <View className="flex-row items-center justify-between p-4">
-                                    <View className="flex-1">
-                                        <Skeleton width="100%" height={120} borderRadius={12} />
+                        {/* Win Rate Card */}
+                        <View className="mb-4 bg-linear-to-br from-blue-100 to-blue-50 border border-blue-200/50 rounded-2xl overflow-hidden shadow-sm">
+                            <View className="flex-row items-center justify-between p-5">
+                                <View className="flex-1">
+                                    <StyledText className="text-sm font-semibold text-blue-700 mb-2">
+                                        Win Rate
+                                    </StyledText>
+                                    <StyledText className="text-3xl font-bold text-blue-900">
+                                        {USER_PRECISION_DATA.precision}%
+                                    </StyledText>
+                                </View>
+                                <View className="opacity-20 ml-4">
+                                    <Zap size={64} color="#0369a1" />
+                                </View>
+                            </View>
+                        </View>
+
+                        {/* Precision Cards - Row */}
+                        <View className="flex-row gap-4">
+                            {/* Green Card - Correct */}
+                            <View className="flex-1 bg-linear-to-br from-green-100 to-green-50 border border-green-200/50 rounded-2xl overflow-hidden shadow-sm">
+                                <View className="grid grid-cols-1 items-start justify-start p-5">
+                                    <StyledText className="text-sm text-start font-semibold text-green-700 mb-2">
+                                        Res. Correctas
+                                    </StyledText>
+                                    <View className="flex-row items-center justify-between w-full">
+                                        <StyledText className="text-3xl font-bold text-green-900">
+                                            {USER_PRECISION_DATA.correct}
+                                        </StyledText>
+                                        <View className="opacity-20 ml-2">
+                                            <ArrowUp size={56} color="#16a34a" />
+                                        </View>
                                     </View>
                                 </View>
                             </View>
-                            <View className="flex-1 bg-linear-to-br from-blue-100 to-blue-50 border border-blue-200/50 rounded-2xl overflow-hidden shadow-sm">
-                                <View className="flex-row items-center justify-between p-4">
-                                    <View className="flex-1">
-                                        <Skeleton width="100%" height={120} borderRadius={12} />
+
+                            {/* Red Card - Incorrect */}
+                            <View className="flex-1 bg-linear-to-br from-red-100 to-red-50 border border-red-200/50 rounded-2xl overflow-hidden shadow-sm">
+                                <View className="grid grid-cols-1 items-start justify-start p-5">
+                                    <StyledText className="text-sm font-semibold text-red-700 mb-2">
+                                        Res. Incorrectas
+                                    </StyledText>
+                                    <View className="flex-row items-center justify-between w-full">
+                                        <StyledText className="text-3xl font-bold text-red-900">
+                                            {USER_PRECISION_DATA.incorrect}
+                                        </StyledText>
+                                        <View className="opacity-20 ml-2">
+                                            <ArrowDown size={56} color="#dc2626" />
+                                        </View>
                                     </View>
                                 </View>
                             </View>
@@ -126,38 +286,107 @@ export default function HomeScreen() {
                     </View>
 
                     {/* Quick Stats Section */}
-                    <View className="mb-8">
-                        <StyledText className="text-2xl font-bold text-gray-900 mb-4 px-2">
-                            Estadísticas Rápidas
+                    <View className="mb-14">
+                        <StyledText className="text-2xl font-bold text-gray-900 px-2">
+                            Curva de Aprendizaje
                         </StyledText>
-                        <View className="flex-row gap-3">
-                            <View className="flex-1 bg-white border border-purple-200/30 rounded-2xl p-4 items-center justify-center">
-                                <View className="w-12 h-12 bg-purple-100 rounded-full items-center justify-center mb-2">
-                                    <TrendingUp size={24} color="#a78bfa" />
-                                </View>
-                                <Skeleton width={60} height={16} borderRadius={4} />
-                                <StyledText className="text-xs text-gray-500 mt-2 text-center">
-                                    Progreso
-                                </StyledText>
-                            </View>
-                            <View className="flex-1 bg-white border border-indigo-200/30 rounded-2xl p-4 items-center justify-center">
-                                <View className="w-12 h-12 bg-indigo-100 rounded-full items-center justify-center mb-2">
-                                    <Zap size={24} color="#818cf8" />
-                                </View>
-                                <Skeleton width={60} height={16} borderRadius={4} />
-                                <StyledText className="text-xs text-gray-500 mt-2 text-center">
-                                    Racha
-                                </StyledText>
-                            </View>
-                            <View className="flex-1 bg-white border border-pink-200/30 rounded-2xl p-4 items-center justify-center">
-                                <View className="w-12 h-12 bg-pink-100 rounded-full items-center justify-center mb-2">
-                                    <Award size={24} color="#ec4899" />
-                                </View>
-                                <Skeleton width={60} height={16} borderRadius={4} />
-                                <StyledText className="text-xs text-gray-500 mt-2 text-center">
-                                    Logros
-                                </StyledText>
-                            </View>
+                        <StyledText className="text-sm text-gray-600 mb-4 px-2">
+                            Evolución de tus respuestas correctas día a día
+                        </StyledText>
+
+                        {/* Year Selector */}
+                        <View className="flex-row mb-4 px-2">
+                            {uniqueYears.map((year) => (
+                                <TouchableOpacity
+                                    key={year}
+                                    style={{
+                                        padding: 8,
+                                        paddingHorizontal: 16,
+                                        marginRight: 6,
+                                        backgroundColor: selectedYear === year ? '#a78bfa' : 'transparent',
+                                        borderRadius: 999,
+                                        borderWidth: 1,
+                                        borderColor: selectedYear === year ? '#a78bfa' : '#d1d5db',
+                                    }}
+                                    onPress={() => handleYearChange(year)}>
+                                    <Text style={{ color: selectedYear === year ? '#fff' : '#000', fontWeight: 'bold' }}>
+                                        {year}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <View className="items-center justify-center -mx-8 min-h-64">
+                            {isLoadingChart ? (
+                                <ActivityIndicator size="large" color="#a78bfa" />
+                            ) : (
+                                <LineChart
+                                    data={learningCurveLineData}
+                                    height={250}
+                                    verticalLinesColor="#e5e7eb"
+                                    color="#a78bfa"
+                                    thickness={2.5}
+                                    dataPointsColor="#7e22ce"
+                                    startFillColor="#a78bfa"
+                                    startOpacity={0.3}
+                                    endOpacity={0}
+                                    xAxisColor="#d1d5db"
+                                    yAxisColor="transparent"
+                                    isAnimated={true}
+                                    hideYAxisText={true}
+                                    textShiftY={-8}
+                                    textShiftX={-1}
+                                    textFontSize={13}
+                                    areaChart={true}
+                                    curved
+                                    scrollToEnd={true}
+                                    rotateLabel
+                                    width={Dimensions.get('window').width}
+                                    xAxisLabelTextStyle={{ color: '#6b7280', fontSize: 12 }}
+                                />
+                            )}
+                        </View>
+                    </View>
+
+                    {/* Performance by Game Section */}
+                    <View className="mb-14">
+                        <StyledText className="text-2xl font-bold text-gray-900 px-2">
+                            Precisión
+                        </StyledText>
+                        <StyledText className="text-sm text-gray-600 mb-4 px-2">
+                            Desempeño en cada minijuego/categoría
+                        </StyledText>
+
+                        <View className="gap-4">
+                            {USER_PERFORMANCE_DATA.map((game) => {
+                                const accuracyColor = getAccuracyColor(game.accuracy);
+                                const truncatedName = truncateName(game.name);
+                                
+                                return (
+                                    <View key={game.id} className="px-2">
+                                        {/* Game name and accuracy value */}
+                                        <View className="flex-row items-center justify-between mb-2">
+                                            <StyledText className="text-sm font-semibold text-gray-700 flex-1">
+                                                {truncatedName}
+                                            </StyledText>
+                                            <StyledText className="text-sm font-bold" style={{ color: accuracyColor }}>
+                                                {game.accuracy.toFixed(2)}%
+                                            </StyledText>
+                                        </View>
+                                        
+                                        {/* Horizontal progress bar */}
+                                        <View className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+                                            <View
+                                                className="h-full rounded-full"
+                                                style={{
+                                                    width: `${game.accuracy}%`,
+                                                    backgroundColor: accuracyColor,
+                                                }}
+                                            />
+                                        </View>
+                                    </View>
+                                );
+                            })}
                         </View>
                     </View>
                 </View>

@@ -170,33 +170,6 @@ export default function ProfileScreen() {
                             </View>
                         </>
                     )}
-
-                    {/* Stats Section */}
-                    <View className="mt-8 mb-8">
-                        <StyledText className="text-xl font-bold text-gray-900 mb-4 px-2">
-                            Estadísticas
-                        </StyledText>
-                        <View className="flex-row gap-3">
-                            <View className="flex-1 bg-linear-to-br from-purple-100 to-purple-50 border border-purple-200/50 rounded-2xl p-4 items-center justify-center">
-                                <View className="w-10 h-10 bg-purple-200 rounded-full items-center justify-center mb-2">
-                                    <Trophy size={20} color="#a78bfa" />
-                                </View>
-                                <Skeleton width={40} height={14} borderRadius={4} />
-                                <StyledText className="text-xs text-gray-600 mt-2">
-                                    Logros
-                                </StyledText>
-                            </View>
-                            <View className="flex-1 bg-linear-to-br from-indigo-100 to-indigo-50 border border-indigo-200/50 rounded-2xl p-4 items-center justify-center">
-                                <View className="w-10 h-10 bg-indigo-200 rounded-full items-center justify-center mb-2">
-                                    <Star size={20} color="#818cf8" />
-                                </View>
-                                <Skeleton width={40} height={14} borderRadius={4} />
-                                <StyledText className="text-xs text-gray-600 mt-2">
-                                    Nivel
-                                </StyledText>
-                            </View>
-                        </View>
-                    </View>
                 </View>
             </ScrollView>
 

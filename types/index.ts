@@ -22,22 +22,6 @@ export interface ApiResponse<T> {
     message?: string;
 }
 
-export interface KPI {
-    id: string;
-    name: string;
-    value: number | string;
-    target?: number | string;
-    unit?: string;
-    lastUpdated?: string;
-    [key: string]: any;
-}
-
-export interface KPIResponse {
-    kpis: KPI[];
-    total?: number;
-    [key: string]: any;
-}
-
 export interface UserPresitionResponse {
     total: number;
     correct: number;
