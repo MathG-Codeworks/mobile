@@ -1,4 +1,5 @@
 const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+const API_PREDICTION_URL = process.env.EXPO_PUBLIC_PREDICTION_API_URL || 'http://localhost:3001';
 
 export const API_ENDPOINTS = {
 	register: `${API_URL}/auth/register`,
@@ -13,6 +14,7 @@ export const API_ENDPOINTS = {
 	getUserPresition: `${API_URL}/attemp/user/presition`,
 	getUserPresitionByDay: `${API_URL}/attemp/user/by-day`,
 	getUserPerformance: `${API_URL}/minigame/user/performance`,
+	prediction: `${API_PREDICTION_URL}/predecir`,
 };
 
 export const ACCESS_TOKEN_KEY = process.env.ACCESS_TOKEN_KEY || 'accessToken';

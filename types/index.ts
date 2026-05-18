@@ -46,3 +46,20 @@ export interface UserPerformanceResponse {
     accuracy: number;
     position: number; 
 }
+
+export interface PredictionPayload {
+    match_id: string;
+    user_id: number;
+    minigame_id: number;
+    avg_accuracy: number;
+    failed_options_ratio: number;
+    consecutive_streak: number;
+    session_duration: number;
+    relative_score_diff: number;
+}
+
+export interface PredictionResponse {
+    id: number;
+    probabilidad_ganar: number;
+    va_a_ganar: boolean;
+}

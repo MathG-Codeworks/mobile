@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { BarChart3, Settings, User } from 'lucide-react-native';
+import { BarChart3, Settings, TrendingUpDown, User } from 'lucide-react-native';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -29,6 +29,13 @@ export default function TabLayout() {
 				options={{
 					title: 'Perfil',
 					tabBarIcon: ({ color }) => <User size={28} color={color} />,
+				}}
+			/>
+			<Tabs.Screen 
+				name="prediction"
+				options={{
+					title: 'Predicción',
+					tabBarIcon: ({ color }) => <TrendingUpDown size={28} color={color} />,
 				}}
 			/>
 			<Tabs.Screen
