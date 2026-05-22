@@ -129,7 +129,7 @@ export default function LoginScreen() {
                                 MathG
                             </StyledText>
                             <StyledText className="text-2xl text-purple-200 mb-2 tracking-wider font-semibold text-center">
-                                Bienvenido, Héroe as
+                                Bienvenido, Héroe
                             </StyledText>
                         </View>
 
